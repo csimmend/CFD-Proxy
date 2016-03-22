@@ -264,11 +264,11 @@ void init_communication(int argc, char *argv[], comm_data *cd)
 #ifdef USE_MPI_MULTI_THREADED
   int provided, required = MPI_THREAD_MULTIPLE;
   MPI_Init_thread(&argc, &argv, required, &provided);
-  ASSERT(required == MPI_THREAD_MULTIPLE);
+  ASSERT(provided >= MPI_THREAD_MULTIPLE);
 #else
   int provided, required = MPI_THREAD_SERIALIZED;
   MPI_Init_thread(&argc, &argv, required, &provided);
-  ASSERT(required == MPI_THREAD_SERIALIZED);
+  ASSERT(provided >= MPI_THREAD_SERIALIZED);
 #endif
 
   MPI_Comm_size(MPI_COMM_WORLD, &nProc);
@@ -283,7 +283,7 @@ void init_communication(int argc, char *argv[], comm_data *cd)
 
 #ifdef USE_GASPI
   /* threading model only */
-  if (cd->ndomains == 1)
+  if (nProc == 1)
     {      
       return;
     }

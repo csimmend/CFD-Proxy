@@ -64,19 +64,23 @@ static int **recvoffset_local = NULL;
 /* getter/setter functions for global/local counters */
 int get_send_counter_global(int i)
 {
+#pragma omp flush
   return send_counter_global[i].global;
 }
 int inc_send_counter_global(int i, int val)
 {
-  return my_add_and_fetch(&send_counter_global[i].global, val);
+#pragma omp flush
+  const int global = my_add_and_fetch(&send_counter_global[i].global, val);
+#pragma omp flush
+  return global;
 }
+
+/* getter/setter functions for thread local send/recv count */
 int inc_send_counter_local(int i, int val)
 {
   send_counter_local[i] += val;
   return send_counter_local[i];
 }
-
-/* getter/setter functions for thread local send/recv count */
 int get_nsendcount_local(void)
 {
   return nsendcount_local;
@@ -354,7 +358,7 @@ void initiate_thread_comm_mpi_fence(RangeList *color
       int i1 = color->sendpartner[i];
       void *sndbuf = get_sndbuf();
       int k = cd->commpartner[i1];
-      double *const sbuf = (double *) (sndbuf + cd->local_send_offset[k]);
+      double *const sbuf = (double *) ((char *) sndbuf + cd->local_send_offset[k]);
       if (color->sendcount[i] > 0 
 	  && sendcount_local[i1] > 0)
 	{
@@ -427,7 +431,7 @@ void initiate_thread_comm_mpi_pscw(RangeList *color
       int i1 = color->sendpartner[i];
       void *sndbuf = get_sndbuf();
       int k = cd->commpartner[i1];
-      double *const sbuf = (double *) (sndbuf + cd->local_send_offset[k]);
+      double *const sbuf = (double *) ((char *) sndbuf + cd->local_send_offset[k]);
       if (color->sendcount[i] > 0 
 	  && sendcount_local[i1] > 0)
 	{
@@ -503,7 +507,7 @@ void initiate_thread_comm_gaspi(RangeList *color
       int buffer_id = cd->send_stage % 2;
       SUCCESS_OR_DIE(gaspi_segment_ptr(buffer_id, &ptr));
       int k = cd->commpartner[i1];
-      double *sbuf = (double *) (ptr + cd->local_send_offset[k]); 
+      double *sbuf = (double *) ((char *) ptr + cd->local_send_offset[k]); 
       if (color->sendcount[i] > 0 
 	  && sendcount_local[i1] > 0)
 	{
